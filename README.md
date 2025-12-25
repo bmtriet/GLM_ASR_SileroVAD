@@ -1,68 +1,76 @@
-# GLM-ASR
+# GLM-ASR Nano: Professional Speech-to-Text Demo
 
-[中文阅读.](./README_zh.md)
+A high-performance, robust Speech-to-Text (STT) application powered by the **GLM-ASR Nano** model. This project features a modern web interface, intelligent audio segmentation, and memory-safe processing for long audio files.
 
-<div align="center">
-<img src=resources/logo.svg width="20%"/>
-</div>
-<p align="center">
-    👋 Join our <a href="resources/WECHAT.md" target="_blank">WeChat</a> community
-</p>
+![GLM-ASR UI](https://img.shields.io/badge/UI-Modern%20Glassmorphism-blue)
+![Backend](https://img.shields.io/badge/Backend-FastAPI-green)
+![Model](https://img.shields.io/badge/Model-GLM--ASR%20Nano-purple)
 
-## Model Introduction
+## 🚀 Key Features
 
-**GLM-ASR-Nano-2512** is a robust, open-source speech recognition model with **1.5B parameters**. Designed for
-real-world complexity, it outperforms OpenAI Whisper V3 on multiple benchmarks while maintaining a compact size.
+- **High Accuracy Transcription**: Utilizing the `GLM-ASR-Nano-2512` model for superior speech recognition.
+- **Robust Segmentation (VAD)**: Intelligent Voice Activity Detection (Silero VAD) running on CPU to split long audio into manageable chunks.
+- **Sequential GPU Processing**: Optimized workflow that transcribes segments one-by-one to prevent CUDA Out-Of-Memory (OOM) errors on systems like the RTX 4060 Ti.
+- **Interactive UI**:
+    - **Live Recording**: Record audio directly from your browser.
+    - **File Upload**: Support for various audio formats.
+    - **Smart Seek**: Click any transcript segment to jump to that specific point in the merged audio player.
+    - **Glassmorphism Design**: A premium, responsive dark-mode interface built with Tailwind CSS.
+- **HTTPS Enabled**: Built-in support for secure communication using self-signed certificates.
 
-Key capabilities include:
+## 🛠 Tech Stack
 
-* **Exceptional Dialect Support**
-  Beyond standard Mandarin and English, the model is highly optimized for **Cantonese (粤语)** and other dialects,
-  effectively bridging the gap in dialectal speech recognition.
+- **Backend**: Python 3.10+, FastAPI, PyTorch, Torchaudio.
+- **Frontend**: HTML5, JavaScript, Tailwind CSS (CDN).
+- **VAD**: Silero VAD (CPU-based).
+- **ASR Model**: GLM-ASR Nano.
+- **Package Manager**: [uv](https://github.com/astral-sh/uv).
 
-* **Low-Volume Speech Robustness**
-  Specifically trained for **"Whisper/Quiet Speech"** scenarios. It captures and accurately transcribes extremely
-  low-volume audio that traditional models often miss.
+## 📥 Installation
 
-* **SOTA Performance**
-  Achieves the **lowest average error rate (4.10)** among comparable open-source models, showing significant advantages
-  in Chinese benchmarks (Wenet Meeting, Aishell-1, etc..).
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd GLM-ASR
+   ```
 
-## Benchmark
+2. **Setup Virtual Environment and Dependencies**:
+   This project uses `uv` for fast dependency management.
+   ```bash
+   uv sync
+   ```
 
-We evaluated GLM-ASR-Nano against leading open-source and closed-source models. The results demonstrate 
-that **GLM-ASR-Nano (1.5B)** achieves superior performance, particularly in challenging acoustic environments.
+3. **Generate SSL Certificates**:
+   The web UI requires HTTPS for microphone access.
+   ```bash
+   bash generate_certs.sh
+   ```
 
-![Benchmark results](resources/bench.png)
+## 🏃 Running the Application
 
-Notes:
-
-- Wenet Meeting reflects real-world meeting scenarios with noise and overlapping speech.
-- Aishell-1 is a standard Mandarin benchmark.
-
-## Inference
-
-`GLM-ASR-Nano-2512` can be easily integrated using the `transformers` library.  
-We will support `transformers 5.x` as well as inference frameworks such as `vLLM` and `SGLang`.
-
-### Requirements
-
+Start the server using the provided run script:
 ```bash
-pip install -r requirements.txt
-sudo apt install ffmpeg
+bash run.sh
 ```
 
-### Example Code
+The application will be available at: `https://localhost:8443`
 
-```shell
-python inference.py --checkpoint_dir zai-org/GLM-ASR-Nano-2512 --audio examples/example_en.wav # English
-python inference.py --checkpoint_dir zai-org/GLM-ASR-Nano-2512 --audio examples/example_zh.wav # 中文
-```
+> [!NOTE]
+> Since the server uses self-signed certificates, you will see a security warning in your browser. Click **Advanced** and **Proceed** to continue.
 
-For the two example audio clips above, the model is able to produce accurate transcription results. They are:
+## 🔌 API Documentation
 
-```shell
-be careful not to allow fabric to become too hot which can cause shrinkage or in extreme cases scorch
-我还能再搞一个，就算是非常小的声音也能识别准确
-```
+For detailed API usage (Transcribe, Segment, Full-Cycle), refer to the [STT API Documentation](stt_api_docs.md).
 
+### Primary Endpoint
+- `POST /transcribe-full`: Handles the entire process from segmentation to final transcription.
+
+## 💻 Hardware Requirements
+
+- **GPU**: NVIDIA GeForce RTX 4060 Ti 8GB (Recommended) or higher.
+- **CUDA**: 12.2+ supported.
+- **RAM**: 16GB+ recommended.
+
+## 📜 License
+
+[Apache 2.0](LICENSE)
