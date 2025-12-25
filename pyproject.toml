@@ -1,0 +1,28 @@
+[project]
+name = "glm-asr"
+version = "0.1.0"
+description = "GLM-ASR Speech Recognition Demo with HTTPS UI"
+readme = "README.md"
+requires-python = ">=3.10,<3.12"
+dependencies = [
+    "torch>=2.5.0",
+    "torchaudio>=2.5.0",
+    "torchcodec>=0.9.0",
+    "transformers==4.51.3",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-multipart>=0.0.12",
+    "ffmpeg-python>=0.2.0",
+    "numpy>=1.24.0",
+    "soundfile>=0.12.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]

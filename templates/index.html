@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLM-ASR | Professional STT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .segment-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .segment-card:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .segment-card.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight text-white">GLM-ASR <span class="text-blue-500 text-sm font-medium uppercase tracking-widest ml-1">Nano</span></h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="statusIndicator" class="flex items-center gap-2 text-xs font-medium text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                    SYSTEM READY
+                </div>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column: Controls & Audio -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Upload/Record Card -->
+                <div class="glass rounded-2xl p-6 shadow-xl">
+                    <h2 class="text-lg font-semibold mb-4 text-slate-100 italic">Input Sources</h2>
+                    <div class="space-y-3">
+                        <button id="recordBtn" class="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-red-900/20 active:scale-95">
+                            <span id="recordIcon">🎤</span>
+                            <span id="recordText">Start Recording</span>
+                        </button>
+                        
+                        <div class="relative">
+                            <input type="file" id="fileInput" accept="audio/*" class="hidden">
+                            <label for="fileInput" class="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl cursor-pointer transition-all border border-slate-600 shadow-lg active:scale-95">
+                                <span>📁</span> Upload Audio File
+                            </label>
+                        </div>
+                        
+                        <button id="reprocessBtn" disabled class="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl transition-all border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span>🔄</span> Reprocess Last
+                        </button>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-slate-700/50">
+                        <div class="flex items-center justify-between mb-4">
+                            <label class="text-sm font-medium text-slate-300 cursor-pointer flex items-center gap-2">
+                                <input type="checkbox" id="segmentationToggle" checked class="w-4 h-4 rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900">
+                                Robust Segmentation
+                            </label>
+                        </div>
+
+                        <div id="vadSettings" class="space-y-4">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Min Speech</span>
+                                    <span class="text-xs text-blue-400 font-bold"><span id="minSpeechVal">250</span>ms</span>
+                                </div>
+                                <input type="range" id="minSpeechDur" min="50" max="1000" step="50" value="250" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Min Silence</span>
+                                    <span class="text-xs text-blue-400 font-bold"><span id="minSilenceVal">700</span>ms</span>
+                                </div>
+                                <input type="range" id="minSilenceDur" min="100" max="2000" step="100" value="700" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Audio Player -->
+                <div id="playerCard" class="glass rounded-2xl p-6 shadow-xl hidden">
+                    <h2 class="text-lg font-semibold mb-4 text-slate-100 italic">Playback (Silence Optimized)</h2>
+                    <audio id="audioPlayer" controls class="w-full accent-blue-500"></audio>
+                    <p class="mt-2 text-[10px] text-slate-500 text-center uppercase tracking-widest leading-relaxed">Click a segment to jump to that part</p>
+                </div>
+            </div>
+
+            <!-- Right Column: Results -->
+            <div class="lg:col-span-8 flex flex-col gap-6 h-[calc(100vh-160px)]">
+                <!-- Summary Card -->
+                <div class="glass rounded-2xl p-6 shadow-xl flex flex-col max-h-[35%] overflow-hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-white flex items-center gap-2 italic">
+                            <span class="text-yellow-500">✨</span> AI Summary
+                        </h2>
+                        <button id="copySummaryBtn" class="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-white" title="Copy Summary">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        </button>
+                    </div>
+                    <div id="summaryDisplay" class="text-slate-300 text-sm leading-relaxed overflow-y-auto pr-2 italic">
+                        The AI summary will appear here after processing.
+                    </div>
+                </div>
+
+                <!-- Transcript Card -->
+                <div class="glass rounded-2xl p-6 shadow-xl flex-1 flex flex-col overflow-hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-white flex items-center gap-2 italic">
+                            <span>📝</span> Full Transcript
+                        </h2>
+                        <div class="flex items-center gap-2">
+                            <button id="copyTranscriptBtn" class="flex items-center gap-1.5 py-1.5 px-3 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-lg transition-colors border border-slate-600">
+                                <span>📋</span> Copy All
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="transcriptDisplay" class="flex-1 overflow-y-auto pr-4 space-y-4">
+                        <div class="h-full flex flex-col items-center justify-center text-slate-500 space-y-4 opacity-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <p class="text-sm">No transcription results yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div id="processingOverlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center hidden">
+        <div class="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+        <h2 class="text-xl font-bold text-white mb-2" id="processingTitle">Processing Audio</h2>
+        <p class="text-slate-400 text-sm" id="processingStatus">Running VAD & Transcription...</p>
+    </div>
+
+    <script>
+        // Global State
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let currentAudioBlob = null;
+        let currentFilename = "";
+        let currentData = null;
+
+        // Elements
+        const recordBtn = document.getElementById('recordBtn');
+        const recordText = document.getElementById('recordText');
+        const recordIcon = document.getElementById('recordIcon');
+        const fileInput = document.getElementById('fileInput');
+        const reprocessBtn = document.getElementById('reprocessBtn');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const transcriptDisplay = document.getElementById('transcriptDisplay');
+        const summaryDisplay = document.getElementById('summaryDisplay');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const playerCard = document.getElementById('playerCard');
+        const processingOverlay = document.getElementById('processingOverlay');
+        const processingStatus = document.getElementById('processingStatus');
+
+        const segmentationToggle = document.getElementById('segmentationToggle');
+        const vadSettings = document.getElementById('vadSettings');
+        const minSpeechDur = document.getElementById('minSpeechDur');
+        const minSilenceDur = document.getElementById('minSilenceDur');
+        const minSpeechVal = document.getElementById('minSpeechVal');
+        const minSilenceVal = document.getElementById('minSilenceVal');
+
+        // Initial State
+        minSpeechVal.textContent = minSpeechDur.value;
+        minSilenceVal.textContent = minSilenceDur.value;
+
+        // Settings Listeners
+        minSpeechDur.addEventListener('input', (e) => minSpeechVal.textContent = e.target.value);
+        minSilenceDur.addEventListener('input', (e) => minSilenceVal.textContent = e.target.value);
+        segmentationToggle.addEventListener('change', () => {
+            vadSettings.classList.toggle('opacity-50', !segmentationToggle.checked);
+        });
+
+        // Recording Logic
+        recordBtn.addEventListener('click', async () => {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        await startFullProcess(audioBlob, "recording.wav");
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    recordText.textContent = "Stop Recording";
+                    recordIcon.textContent = "⏹";
+                    recordBtn.classList.replace('bg-red-600', 'bg-slate-800');
+                    statusIndicator.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>RECORDING...`;
+                } catch (err) {
+                    alert("Microphone access denied or error: " + err);
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                recordText.textContent = "Start Recording";
+                recordIcon.textContent = "🎤";
+                recordBtn.classList.replace('bg-slate-800', 'bg-red-600');
+            }
+        });
+
+        // File Selection Logic
+        fileInput.addEventListener('change', async (e) => {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                await startFullProcess(file, file.name);
+            }
+        });
+
+        // Reprocess Logic
+        reprocessBtn.addEventListener('click', async () => {
+            if (currentAudioBlob) {
+                await startFullProcess(currentAudioBlob, currentFilename);
+            }
+        });
+
+        // Core Processing
+        async function startFullProcess(blob, filename) {
+            currentAudioBlob = blob;
+            currentFilename = filename;
+            reprocessBtn.disabled = false;
+
+            // Show Overlay
+            processingOverlay.classList.remove('hidden');
+            processingStatus.textContent = "Uploading file to server...";
+
+            const formData = new FormData();
+            formData.append("file", blob, filename);
+            formData.append("min_speech_ms", minSpeechDur.value);
+            formData.append("min_silence_ms", minSilenceDur.value);
+
+            try {
+                // We always use /transcribe-full for the best experience now
+                const response = await fetch('/transcribe-full', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
+
+                const data = await response.json();
+                currentData = data;
+                renderResults(data);
+                
+                statusIndicator.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>DONE`;
+            } catch (err) {
+                console.error(err);
+                statusIndicator.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>ERROR`;
+                alert("Error during processing: " + err.message);
+            } finally {
+                processingOverlay.classList.add('hidden');
+            }
+        }
+
+        // Render Logic
+        function renderResults(data) {
+            // Setup Audio Player
+            if (data.merged_audio_url) {
+                audioPlayer.src = data.merged_audio_url;
+                playerCard.classList.remove('hidden');
+            }
+
+            // Render Transcript Segments
+            transcriptDisplay.innerHTML = "";
+            if (data.segments && data.segments.length > 0) {
+                data.segments.forEach(seg => {
+                    const card = document.createElement('div');
+                    card.className = "segment-card glass rounded-xl p-4 border border-slate-700/50 hover:shadow-lg transition-all";
+                    
+                    // Display original timestamps for reference, 
+                    // and store merged timestamps for seeking
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded uppercase tracking-wider">
+                                ${formatTime(seg.start)} - ${formatTime(seg.end)}
+                            </span>
+                        </div>
+                        <p class="text-sm text-slate-200 leading-relaxed">${seg.text || '<span class="italic text-slate-500">No speech detected</span>'}</p>
+                    `;
+
+                    card.onclick = () => {
+                        if (seg.merged_start !== undefined) {
+                            audioPlayer.currentTime = seg.merged_start;
+                            audioPlayer.play();
+                            
+                            // Highlight active
+                            document.querySelectorAll('.segment-card').forEach(c => c.classList.remove('active'));
+                            card.classList.add('active');
+                        }
+                    };
+
+                    transcriptDisplay.appendChild(card);
+                });
+            } else {
+                transcriptDisplay.innerHTML = `<div class="h-full flex items-center justify-center text-slate-500 italic">No segments found</div>`;
+            }
+
+            // Mock Summary (as requested by user to leave space for AI summary)
+            summaryDisplay.innerHTML = `
+                <div class="space-y-3">
+                    <p class="text-slate-100 font-medium italic">Transcription Insights:</p>
+                    <p class="text-xs text-slate-400">Total Segments detected: <span class="text-blue-400 font-bold">${data.segments.length}</span>.</p>
+                    <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                        <p class="text-xs text-slate-300 italic">"${data.full_text.substring(0, 150)}${data.full_text.length > 150 ? '...' : ''}"</p>
+                    </div>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-2">Ready for LLM Summary processing</p>
+                </div>
+            `;
+        }
+
+        // Helpers
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // Copy Handlers
+        document.getElementById('copyTranscriptBtn').onclick = () => {
+            if (currentData) {
+                navigator.clipboard.writeText(currentData.full_text);
+                alert("Transcript copied to clipboard!");
+            }
+        };
+
+        document.getElementById('copySummaryBtn').onclick = () => {
+            navigator.clipboard.writeText(summaryDisplay.innerText);
+            alert("Summary area content copied!");
+        };
+
+    </script>
+</body>
+
+</html>
