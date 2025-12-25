@@ -23,7 +23,7 @@ This is the recommended endpoint for all use cases. It seamlessly handles segmen
 | `file` | `File` | **Required** | The audio file to transcribe. |
 | `min_speech_ms` | `integer` | `250` | Min speech duration. |
 | `min_silence_ms` | `integer` | `700` | Min silence to split segments. |
-
+ 
 ### Response
 ```json
 {
