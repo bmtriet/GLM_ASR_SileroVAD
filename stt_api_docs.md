@@ -3,7 +3,7 @@
 This document describes the Speech-to-Text (STT) API endpoints. For long files or precise segmentation, use the **Full-Cycle** endpoint.
 
 ## Base URL
-Default: `https://10.13.34.155:8443`
+Default: `https://0.0.0.0:8443`
 
 > [!NOTE]
 > The server uses self-signed SSL certificates. Disable SSL verification in your client for development.
@@ -114,13 +114,13 @@ import requests
 
 # 1. Segment the long audio
 files = {'file': open('long_audio.wav', 'rb')}
-seg_resp = requests.post("https://10.13.34.155:8443/segment", files=files, verify=False).json()
+seg_resp = requests.post("https://0.0.0.0:8443/segment", files=files, verify=False).json()
 
 # 2. Transcribe each segment one-by-one
 full_transcript = []
 for seg in seg_resp['segments']:
     data = {'segment_filename': seg['filename']}
-    trans_resp = requests.post("https://10.13.34.155:8443/transcribe", data=data, verify=False).json()
+    trans_resp = requests.post("https://0.0.0.0:8443/transcribe", data=data, verify=False).json()
     
     full_transcript.append({
         "time": f"{seg['start']}s - {seg['end']}s",
