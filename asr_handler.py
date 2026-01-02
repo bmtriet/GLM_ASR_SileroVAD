@@ -1,6 +1,7 @@
 import flash_attention_patch  # Patch transformers 4.51.3 flash attention bug
 import torch
 import torchaudio
+import os
 from pathlib import Path
 from typing import Union
 from transformers import (
@@ -25,6 +26,26 @@ WHISPER_FEAT_CFG = {
     "sampling_rate": 16000,
 }
 
+def resolve_checkpoint_path(checkpoint_dir: str) -> str:
+    """Helper to resolve repo ID to a local absolute path if cached."""
+    if os.path.exists(checkpoint_dir):
+        return os.path.abspath(checkpoint_dir)
+    
+    # Check HF cache for snapshots
+    cache_base = os.path.expanduser("~/.cache/huggingface/hub")
+    repo_folder = f"models--{checkpoint_dir.replace('/', '--')}"
+    repo_path = os.path.join(cache_base, repo_folder, "snapshots")
+    
+    if os.path.exists(repo_path):
+        import glob
+        snapshots = glob.glob(os.path.join(repo_path, "*"))
+        if snapshots:
+            # Return the latest snapshot by modification time
+            snapshots.sort(key=os.path.getmtime, reverse=True)
+            return snapshots[0]
+            
+    return checkpoint_dir
+
 class ASRHandler:
     def __init__(self, checkpoint_dir: str, device: str = None):
         if device is None:
@@ -32,20 +53,52 @@ class ASRHandler:
         else:
             self.device = device
             
-        self.checkpoint_dir = Path(checkpoint_dir)
-        print(f"Loading model from {self.checkpoint_dir} on {self.device}...")
+        # Resolve to absolute path to ensure custom architecture resolution works
+        self.checkpoint_dir = Path(resolve_checkpoint_path(checkpoint_dir))
+        print(f"Resolved checkpoint path: {self.checkpoint_dir}")
+        print(f"Loading model on {self.device}...")
         
-        self.config = AutoConfig.from_pretrained(self.checkpoint_dir, trust_remote_code=True)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.checkpoint_dir,
-            config=self.config,
-            torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
-            trust_remote_code=True,
-            attn_implementation="eager",  # Disable flash attention to avoid compatibility issues
-        ).to(self.device)
+        try:
+            # First attempt with resolved path
+            self.config = AutoConfig.from_pretrained(str(self.checkpoint_dir), trust_remote_code=True)
+        except (ValueError, KeyError, EnvironmentError) as e:
+            if "glmasr" in str(e).lower():
+                print("AutoConfig failed to recognize 'glmasr'. Attempting manual class resolution...")
+                from transformers.dynamic_module_utils import get_class_from_dynamic_module
+                config_class = get_class_from_dynamic_module(
+                    "configuration_glmasr.GlmasrConfig", str(self.checkpoint_dir)
+                )
+                self.config = config_class.from_pretrained(str(self.checkpoint_dir))
+            else:
+                raise e
+
+        try:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                str(self.checkpoint_dir),
+                config=self.config,
+                torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
+                trust_remote_code=True,
+                attn_implementation="eager",
+            ).to(self.device)
+        except (ValueError, KeyError, EnvironmentError) as e:
+            if "glmasr" in str(e).lower():
+                print("AutoModel failed to recognize 'glmasr'. Attempting manual class resolution...")
+                from transformers.dynamic_module_utils import get_class_from_dynamic_module
+                model_class = get_class_from_dynamic_module(
+                    "modeling_glmasr.GlmasrModel", str(self.checkpoint_dir)
+                )
+                self.model = model_class.from_pretrained(
+                    str(self.checkpoint_dir),
+                    config=self.config,
+                    torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
+                    attn_implementation="eager",
+                ).to(self.device)
+            else:
+                raise e
+        
         self.model.eval()
         
-        self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint_dir)
+        self.tokenizer = AutoTokenizer.from_pretrained(str(self.checkpoint_dir))
         self.feature_extractor = WhisperFeatureExtractor(**WHISPER_FEAT_CFG)
         print("Model loaded successfully.")
 

@@ -45,6 +45,8 @@ async def lifespan(app: FastAPI):
         print("Segmenter initialized.")
     except Exception as e:
         print(f"Failed to initialize models: {e}")
+        import traceback
+        traceback.print_exc()
         # We don't exit here to allow debugging if model missing
     yield
     # Clean up (if any)
